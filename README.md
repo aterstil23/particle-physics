@@ -9,5 +9,9 @@ Then i tweaked the power of the inverse law so it was less than 2 so that the at
 even smaller and it seemed to work out and assume a certain cohesion between two groups of particles.
 law 
 
-https://user-images.githubusercontent.com/121896803/227749384-c56a4f8f-8d7d-466f-92b0-30cdbf72f684.mp4
+
+
+
+
+https://user-images.githubusercontent.com/121896803/227749722-a3b3f365-88df-4df8-a5e4-f6776f269b6c.mp4
 
