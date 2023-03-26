@@ -6,6 +6,7 @@ There are cohesion attraction and repulsion between the particles of a same grou
 At the beginning i used an inverse square law for the attraction and repulsion of the particles and the particles just smashed into each other and repulled violent and exploding in every direction.
 Then i tweaked the power of the inverse law so it was less than 2 so that the rate of change of the attraction wouldn't change as much. And by accident i made the power of the inverse law of the repulsion smaller than 1 making the repulsion weaker, so it seemed to work out and assume a certain cohesion between two groups of particles.
 law.
+Also, i added an offeset for which when the distance between the particles in a same group is smaller than a certain value the repulsion kicks. The attraction will only occur when the particles are further than their initial distance (equilibrium distance). Initially the 2 groups of particles form a kind a disc.
 
 
 
