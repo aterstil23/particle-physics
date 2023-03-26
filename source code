@@ -1,0 +1,444 @@
+#include <iostream>
+#include <vector>
+#include <cstdarg>
+#include <math.h>
+#include <cmath>
+#include <stdio.h>
+#include "GLFW/glfw3.h"
+#include <algorithm>
+#include <execution>
+#include <Windows.h>
+float offset = 0.12f;
+float attraction = 2.0f;
+float repulsion = 3.0f;
+float speedB = -0.6f;
+float powerrepulsion = 0.55f;
+float powerattraction = 1.3f;
+
+float translation_z = 0.0f;
+
+struct vectordistance {
+    float dx, dy, dz;
+    float length;
+    vectordistance(float a, float b, float c, float d) : dx(a), dy(b), dz(c), length(d) {}
+};
+
+struct particle {
+    float x, y, z;
+    float ax, ay, az;
+    float vx, vy, vz;
+    particle(float a, float b, float c, float d, float e, float f) :x(a), y(b), z(c), ax(0), ay(0), az(0), vx(d), vy(e), vz(f) {
+    }
+};
+struct group {
+    std::vector<particle>& particles;
+    int count;
+    float equilibriumdistance[22][22];
+    std::vector<int> particleid;
+    int id;
+    group(std::vector<particle>& p, int a) : particles(p), count(0), equilibriumdistance{}, particleid{}, id(a) {
+    }
+    void addinitialdistance(float x[22][22], int count) {
+        for (int i = 1; i < count; i++) {
+            x[i][count] = sqrt(pow((particles[i - 1].x - particles[count - 1].x), 2.0) + pow((particles[i - 1].y - particles[count - 1].y), 2.0) + pow((particles[i - 1].z - particles[count - 1].z), 2.0));
+        }
+    }
+    void addparticles(particle p) {
+        particles.push_back(p);
+        count++;
+        particleid.push_back(count);
+        addinitialdistance(equilibriumdistance, count);
+    }
+
+};
+
+vectordistance distance(particle& a, particle& other) {
+    float deltax = other.x - a.x;
+    float deltay = other.y - a.y;
+    float deltaz = other.z - a.z;
+    float length = sqrt(pow(deltax, 2.0) + pow(deltay, 2.0) + pow(deltaz, 2.0));
+    float dx = deltax / length;
+    float dy = deltay / length;
+    float dz = deltaz / length;
+    vectordistance distance = vectordistance(dx, dy, dz, length);
+    return distance;
+}
+
+std::vector<group> groups = {};
+/*void test(group& X) {
+    X.particles[3].ax = 100.0f;
+}*/
+
+
+int main() {
+    particle firstA = { 0.0f, 0.0f, -(0.1f) * 1.0f, 0.0f, 0.0f, 0.0f };
+    particle secondA = { 0.0f, 0.0f, (0.1f) * 1.0f, 0.0f, 0.0f, 0.0f };
+    particle thirdA = { (0.1f) * 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle fourthA = { -(0.1f) * 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle fifthA = { 0.0f, (0.1f) * 1.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle sixthA = { 0.0f, -(0.1f) * 1.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle centerA = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle eighthA = { 0.0f, 0.05f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle ninthA = { 0.0f, -0.05f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle tenthA = { 0.05f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle eleventhA = { -0.05f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle twelvethA = { 0.0f, 0.0f, 0.05f, 0.0f, 0.0f, 0.0f };
+    particle thirteenthA = { 0.0f, 0.0f, -0.05f, 0.0f, 0.0f, 0.0f };
+    particle fourteenthA = { 0.0707f, 0.0707f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle fifteenthA = { -0.0707f, 0.0707f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle sixteenthA = { 0.0707f, -0.0707f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle seventeenthA = { -0.0707f, -0.0707f, 0.0f, 0.0f, 0.0f, 0.0f };
+    particle eighteenthA = { 0.0f, 0.0707f, 0.0707f, 0.0f, 0.0f, 0.0f };
+    particle nineteenthA = { 0.0f, -0.0707f, 0.0707f, 0.0f, 0.0f, 0.0f };
+    particle twentiethA = { 0.0f, 0.0707f, -0.0707f, 0.0f, 0.0f, 0.0f };
+    particle twentyfirstA = { 0.0f, -0.0707f, -0.0707f, 0.0f, 0.0f, 0.0f };
+
+    particle firstB = { 0.0f + 0.74, 0.0f, -(0.1f) * 1.0f, speedB, 0.0f, 0.0f };
+    particle secondB = { 0.0f + 0.74, 0.0f, (0.1f) * 1.0f, speedB, 0.0f, 0.0f };
+    particle thirdB = { (0.1f) * 1.0f + 0.74f, 0.0f, 0.0f, speedB, 0.0f, 0.0f };
+    particle fourthB = { -(0.1f) * 1.0f + 0.74, 0.0f, 0.0f, speedB, 0.0f, 0.0f };
+    particle fifthB = { 0.0f + 0.74, (0.1f) * 1.0f, 0.0f, speedB, 0.0f, 0.0f };
+    particle sixthB = { 0.0f + 0.74, -(0.1f) * 1.0f, 0.0f, speedB, 0.0f, 0.0f };
+    particle centerB = { 0.0f + 0.74, 0.0f, 0.0f, speedB, 0.0f, 0.0f };
+    particle eighthB = { 0.0f + 0.74, 0.05f, 0.0f, speedB, 0.0f, 0.0f };
+    particle ninthB = { 0.0f + 0.74, -0.05f, 0.0f, speedB, 0.0f, 0.0f };
+    particle tenthB = { 0.05f + 0.74, 0.0f, 0.0f, speedB, 0.0f, 0.0f };
+    particle eleventhB = { -0.05f + 0.74, 0.0f, 0.0f, speedB, 0.0f, 0.0f };
+    particle twelvethB = { 0.0f + 0.74, 0.0f, 0.05f, speedB, 0.0f, 0.0f };
+    particle thirteenthB = { 0.0f + 0.74, 0.0f, -0.05f, speedB, 0.0f, 0.0f };
+    particle fourteenthB = { 0.0707f + 0.74, 0.0707f, 0.0f, speedB, 0.0f, 0.0f };
+    particle fifteenthB = { -0.0707f + 0.74, 0.0707f, 0.0f, speedB, 0.0f, 0.0f };
+    particle sixteenthB = { 0.0707f + 0.74, -0.0707f, 0.0f, speedB, 0.0f, 0.0f };
+    particle seventeenthB = { -0.0707f + 0.74, -0.0707f, 0.0f, speedB, 0.0f, 0.0f };
+    particle eighteenthB = { 0.0f + 0.74, 0.0707f, 0.0707f, speedB, 0.0f, 0.0f };
+    particle nineteenthB = { 0.0f + 0.74, -0.0707f, 0.0707f, speedB, 0.0f, 0.0f };
+    particle twentiethB = { 0.0f + 0.74, 0.0707f, -0.0707f, speedB, 0.0f, 0.0f };
+    particle twentyfirstB = { 0.0f + 0.74, -0.0707f, -0.0707f, speedB, 0.0f, 0.0f };
+
+    std::vector<particle> vectorA = {};
+    std::vector<particle> vectorB = {};
+    group B = group(vectorB, 2);
+    group A = group(vectorA, 1);
+    A.addparticles(firstA);
+    A.addparticles(secondA);
+    A.addparticles(thirdA);
+    A.addparticles(fourthA);
+    A.addparticles(fifthA);
+    A.addparticles(sixthA);
+    A.addparticles(centerA);
+    A.addparticles(eighthA);
+    A.addparticles(ninthA);
+    A.addparticles(tenthA);
+    A.addparticles(eleventhA);
+    A.addparticles(twelvethA);
+    A.addparticles(thirteenthA);
+    A.addparticles(fourteenthA);
+    A.addparticles(fifteenthA);
+    A.addparticles(sixteenthA);
+    A.addparticles(seventeenthA);
+    A.addparticles(eighteenthA);
+    A.addparticles(nineteenthA);
+    A.addparticles(twentiethA);
+    A.addparticles(twentyfirstA);
+
+    B.addparticles(firstB);
+    B.addparticles(secondB);
+    B.addparticles(thirdB);
+    B.addparticles(fourthB);
+    B.addparticles(fifthB);
+    B.addparticles(sixthB);
+    B.addparticles(centerB);
+    B.addparticles(eighthB);
+    B.addparticles(ninthB);
+    B.addparticles(tenthB);
+    B.addparticles(eleventhB);
+    B.addparticles(twelvethB);
+    B.addparticles(thirteenthB);
+    B.addparticles(fourteenthB);
+    B.addparticles(fifteenthB);
+    B.addparticles(sixteenthB);
+    B.addparticles(seventeenthB);
+    B.addparticles(eighteenthB);
+    B.addparticles(nineteenthB);
+    B.addparticles(twentiethB);
+    B.addparticles(twentyfirstB);
+    groups.push_back(A);
+    groups.push_back(B);
+
+
+    auto update = [&A, &B](group& X) {
+        if (X.id == A.id) {
+            std::for_each(std::execution::par, X.particleid.begin(), X.particleid.end(), [&X, &A, &B](int id) {
+                X.particles[id - 1].x += X.particles[id - 1].vx * 0.001f /*+ 0.5f*X.particles[id - 1].ax * pow(0.001f, 2.0f)*/;
+            X.particles[id - 1].y += X.particles[id - 1].vy * 0.001f /* + 0.5f * X.particles[id - 1].ay * pow(0.001f, 2.0f)*/;
+            /*X.particles[id - 1].z += X.particles[id - 1].vz * 0.001f*//* + 0.5f * X.particles[id - 1].az * pow(0.001f, 2.0)*/;
+            if (X.particles[id - 1].x < -1.0f || X.particles[id - 1].x>1.0f) {
+                X.particles[id - 1].vx *= -1.0f;
+            }
+            if (X.particles[id - 1].y < -1.0f || X.particles[id - 1].y>1.0f) {
+                X.particles[id - 1].vy *= -1.0f;
+            }
+            X.particles[id - 1].vx += X.particles[id - 1].ax * 0.001f;
+            X.particles[id - 1].vy += X.particles[id - 1].ay * 0.001f;
+            X.particles[id - 1].vz += X.particles[id - 1].az * 0.001f;
+            X.particles[id - 1].ax = 0.0f;
+            X.particles[id - 1].ay = 0.0f;
+            X.particles[id - 1].az = 0.0f;
+            for (int i = 0; i < 21; i++) {
+                if (i != id - 1) {
+                    vectordistance vector = distance(X.particles[id - 1], X.particles[i]);
+                    if (id < i + 1) {
+                        float difference =vector.length - X.equilibriumdistance[id][i + 1];
+                        if (difference>0){
+                            X.particles[id - 1].ax += 0.01f * (attraction / pow(vector.length, powerattraction)) * vector.dx;
+                            X.particles[id - 1].ay += 0.01f * (attraction / pow(vector.length, powerattraction)) * vector.dy;
+                            X.particles[id - 1].az += 0.01f * (attraction / pow(vector.length, powerattraction)) * vector.dz;
+                        }
+                        
+                      
+                        
+                        if (difference+offset < 0) {
+                            X.particles[id - 1].ax -= 0.01f * (9.0f / pow(vector.length, powerrepulsion)) * vector.dx;
+                            X.particles[id - 1].ay -= 0.01f * (9.0f / pow(vector.length, powerrepulsion))*vector.dy;
+                            X.particles[id - 1].az -= 0.01f * (9.0f / pow(vector.length, powerrepulsion))*vector.dz;
+                            
+                        }
+                    }
+                    else if (id > i + 1) {
+                        float difference =vector.length- X.equilibriumdistance[i + 1][id];
+                        if (difference > 0) {
+                            X.particles[id - 1].ax += 0.01f * (attraction / pow(vector.length, powerattraction)) * vector.dx;
+                            X.particles[id - 1].ay += 0.01f * (attraction / pow(vector.length, powerattraction)) * vector.dy;
+                            X.particles[id - 1].az += 0.01f * (attraction / pow(vector.length, powerattraction)) * vector.dz;
+                       }
+                        
+                        /*X.particles[id - 1].ax += 1.0f * difference;
+                        X.particles[id - 1].ay += 1.0f * difference;
+                        X.particles[id - 1].az += 1.0f * difference;*/
+                        
+                        if (difference+offset < 0) {
+                            X.particles[id - 1].ax -= 0.01f * (repulsion / pow(vector.length, powerrepulsion)) * vector.dx;
+                            X.particles[id - 1].ay -= 0.01f * (repulsion / pow(vector.length, powerrepulsion))*vector.dy;
+                            X.particles[id - 1].az -= 0.01f * (repulsion / pow(vector.length, powerrepulsion))*vector.dz;
+                           
+                        }
+                    }
+
+                }
+            }
+            for (int k = 0; k < B.particles.size(); k++) {
+                vectordistance vector2 = distance(X.particles[id - 1], B.particles[k]);
+                float difference = 0.12f - vector2.length;
+                if (difference > 0) {
+                    X.particles[id - 1].ax -= 0.01f * (10.0f / pow(vector2.length, 2.0f)) * vector2.dx;
+                    X.particles[id - 1].ay -= 0.01f * (10.0f / pow(vector2.length, 2.0f))*vector2.dy;
+                    X.particles[id - 1].az -= 0.01f * (10.0f / pow(vector2.length, 2.0f))*vector2.dz;
+                    
+                }
+            }
+
+                });
+        }
+
+        else if (X.id == B.id) {
+            std::for_each(std::execution::par, X.particleid.begin(), X.particleid.end(), [&X, &A, &B](int id) {
+                X.particles[id - 1].x += X.particles[id - 1].vx * 0.001f/* + 0.5f * X.particles[id - 1].ax * pow(0.001f, 2.0f)*/;
+            X.particles[id - 1].y += X.particles[id - 1].vy * 0.001f/* + 0.5f * X.particles[id - 1].ay * pow(0.001f, 2.0f)*/;
+            /*X.particles[id - 1].z += X.particles[id - 1].vz * 0.001f*//* + 0.5f * X.particles[id - 1].az * pow(0.001f, 2.0)*/;
+            if (X.particles[id - 1].x < -1.0f || X.particles[id - 1].x>1.0f) {
+                X.particles[id - 1].vx *= -1.0f;
+            }
+            if (X.particles[id - 1].y < -1.0f || X.particles[id - 1].y>1.0f) {
+                X.particles[id - 1].vy *= -1.0f;
+            }
+            X.particles[id - 1].vx += X.particles[id - 1].ax * 0.001f;
+            X.particles[id - 1].vy += X.particles[id - 1].ay * 0.001f;
+            X.particles[id - 1].vz += X.particles[id - 1].az * 0.001f;
+            X.particles[id - 1].ax = 0.0f;
+            X.particles[id - 1].ay = 0.0f;
+            X.particles[id - 1].az = 0.0f;
+            for (int i = 0; i < 21; i++) {
+                if (i != id - 1) {
+                    vectordistance vector = distance(X.particles[id - 1], X.particles[i]);
+                    if (id < i + 1) {
+                        float difference =vector.length-X.equilibriumdistance[id][i + 1];
+                        if (difference > 0) {
+                            X.particles[id - 1].ax += 0.01f * (attraction / pow(vector.length, powerattraction)) * vector.dx;
+                            X.particles[id - 1].ay += 0.01f * (attraction / pow(vector.length, powerattraction)) * vector.dy;
+                            X.particles[id - 1].az += 0.01f * (attraction / pow(vector.length, powerattraction)) * vector.dz;
+                        }
+                  
+                       
+                        /*X.particles[id - 1].ax += 1.0f * difference;
+                        X.particles[id - 1].ay += 1.0f * difference;
+                        X.particles[id - 1].az += 1.0f * difference;*/
+                        
+                        if (difference+offset < 0) {
+                            X.particles[id - 1].ax -= 0.01f * (repulsion / pow(vector.length, powerrepulsion)) * vector.dx;
+                            X.particles[id - 1].ay -= 0.01f * (repulsion / pow(vector.length, powerrepulsion))*vector.dy;
+                            X.particles[id - 1].az -= 0.01f * (repulsion / pow(vector.length, powerrepulsion))*vector.dz;
+                            
+                        }
+                    }
+                    else if (id > i + 1) {
+                        float difference = vector.length-X.equilibriumdistance[i + 1][id];
+                        if (difference > 0) {
+                            X.particles[id - 1].ax += 0.01f * (attraction / pow(vector.length, powerattraction)) * vector.dx;
+                            X.particles[id - 1].ay += 0.01f * (attraction / pow(vector.length, powerattraction)) * vector.dy;
+                            X.particles[id - 1].az += 0.01f * (attraction / pow(vector.length, powerattraction)) * vector.dz;
+                        }
+                        
+                       
+                        
+                        if (difference+offset < 0) {
+                            X.particles[id - 1].ax -= 0.01f * (repulsion / pow(vector.length, powerrepulsion)) * vector.dx;
+                            X.particles[id - 1].ay -= 0.01f * (repulsion / pow(vector.length, powerrepulsion))*vector.dy;
+                            X.particles[id - 1].az -= 0.01f * (repulsion / pow(vector.length, powerrepulsion))*vector.dz;
+                            
+                        }
+                    }
+
+                }
+            }
+            for (int k = 0; k < A.particles.size(); k++) {
+                vectordistance vector2 = distance(X.particles[id - 1], A.particles[k]);
+                float difference = 0.12f - vector2.length;
+                if (difference > 0) {
+                    X.particles[id - 1].ax -= 0.01f * (10.0f / pow(vector2.length, 2.0f)) * vector2.dx;
+                    X.particles[id - 1].ay -= 0.01f * (10.0f / pow(vector2.length, 2.0f))*vector2.dy;
+                    X.particles[id - 1].az -= 0.01f * (10.0f / pow(vector2.length, 2.0f))*vector2.dz;
+                    
+                }
+            }
+
+                });
+        }
+
+
+
+    };
+
+ 
+    auto drawpoints = [&A, &B](group& X) {
+        if (X.id == A.id) {
+            std::for_each(std::execution::par, X.particles.begin(), X.particles.end(), [&A, &B](particle& a) {
+                glPointSize(5);
+
+            //group #1 starts here     
+            glBegin(GL_POINTS);
+
+            //color of group #1 is white 
+
+            glColor3f(1, 1, 1);
+
+          
+            glVertex3f(a.x, a.y, a.z);
+            //location of points
+            glEnd();
+
+
+
+                });
+        }
+        else if (X.id == B.id) {
+            std::for_each(std::execution::par, X.particles.begin(), X.particles.end(), [&A, &B](particle& a) {
+                glPointSize(5);
+
+            //group #1 starts here     
+            glBegin(GL_POINTS);
+
+            //color of group #1 is white 
+
+            glColor3f(1, 0, 0);
+
+            /*else if (&X == &B) {
+                glColor3f(1, 0.5, 0.5);
+            }*/
+            glVertex3f(a.x, a.y, a.z);
+            //location of points
+            glEnd();
+
+
+
+                });
+        }
+    };
+
+
+
+    GLFWwindow* window;
+
+
+
+
+    /* Initialize the library */
+    if (!glfwInit())
+        return -1;
+
+   
+    window = glfwCreateWindow(1400, 1400, "Hello World", NULL, NULL);
+ 
+   
+ 
+
+    if (!window)
+    {
+        glfwTerminate();
+        return -1;
+    }
+
+    /* Make the window's context current */
+    glfwMakeContextCurrent(window);
+    /*glfwSetMouseButtonCallback(window, mouse_button_callback);*/
+
+    /* Loop until the user closes the window */
+    while (!glfwWindowShouldClose(window))
+    {
+
+        glClear(GL_COLOR_BUFFER_BIT);
+        std::for_each(std::execution::par, groups.begin(), groups.end(), update);
+        
+
+        std::for_each(std::execution::par, groups.begin(), groups.end(), drawpoints);
+        /*glPointSize(1);
+
+        //group #1 starts here
+        glBegin(GL_POINTS);
+
+        //color of group #1 is white
+        glColor3f(1, 1, 1);
+
+
+        glVertex3f(a / 953., -b / 413., 0.);
+        //location of points
+        glEnd();*/
+        /*glBegin(GL_TRIANGLES);
+        glVertex2f(x, y);
+        glVertex2f(x + 0.04f, y + 0.08f);
+        glVertex2f(x + 0.08f, y);
+        glEnd();
+
+        glBegin(GL_TRIANGLES);
+        glVertex2f(x2, y2);
+        glVertex2f(x2 + 0.04f, y2 + 0.08f);
+        glVertex2f(x2 + 0.08f, y2);
+        glEnd();
+
+        glBegin(GL_TRIANGLES);
+        glVertex2f(x3, y3);
+        glVertex2f(x3 + 0.04f, y3 + 0.08f);
+        glVertex2f(x3 + 0.08f, y3);
+        glEnd();*/
+        /* Swap front and back buffers */
+        glfwSwapBuffers(window);
+
+        /* Poll for and process events */
+        glfwPollEvents();
+    }
+
+    glfwTerminate();
+    return 0;
+
+
+
+}
